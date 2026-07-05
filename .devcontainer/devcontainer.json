@@ -9,6 +9,6 @@
   "forwardPorts": [
     8888
   ],
-  "postCreateCommand": "uv --version && crush --version && lazygit --version && docker --version && docker compose version && node --version && echo '✓ Knowledge Pod ready'",
+  "postCreateCommand": "uv --version && crush --version && lazygit --version && docker --version && docker compose version && node --version && graphify --version && echo '✓ Knowledge Pod ready'",
   "remoteUser": "vscode"
 }

@@ -1,67 +1,51 @@
 # ============================================================================
-# Knowledge Pod — Multi-stage Scientific Research Workspace
+# Knowledge Pod — Lightweight Scientific Research Workspace
 # ============================================================================
+
 # ─── Builder: uv ────────────────────────────────────────────────────────────
 FROM ghcr.io/astral-sh/uv:latest AS uv
 
-# ─── Builder: Neovim ────────────────────────────────────────────────────────
+# ─── Builder: Neovim (pre-built binary) ────────────────────────────────────
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS nvim-builder
 
 USER root
+ARG TARGETARCH
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
- && apt-get -y install --no-install-recommends \
-   git cmake ninja-build gettext libtool libtool-bin autoconf automake \
-   g++ pkg-config unzip curl build-essential systemtap-sdt-dev \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-ARG NVIM_VERSION=stable
-RUN NVIM_TAG="${NVIM_VERSION}" \
- && if [ "$NVIM_TAG" = "stable" ]; then \
-   NVIM_TAG=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest \
-     | grep '"tag_name"' | cut -d '"' -f 4); \
- fi \
- && echo "Building Neovim $NVIM_TAG" \
- && git clone --depth 1 --branch "$NVIM_TAG" https://github.com/neovim/neovim /tmp/nvim \
- && cd /tmp/nvim \
- && make CMAKE_BUILD_TYPE=Release CMAKE_INSTALL_PREFIX=/usr/local \
- && make install \
- && rm -rf /tmp/nvim
+RUN NVIM_ARCH="${TARGETARCH}" \
+ && if [ "$NVIM_ARCH" = "amd64" ]; then NVIM_ARCH="x86_64"; fi \
+ && curl -Lo nvim.tar.gz "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${NVIM_ARCH}.tar.gz" \
+ && tar xf nvim.tar.gz \
+ && mv nvim-linux-${NVIM_ARCH} /usr/local/nvim \
+ && rm nvim.tar.gz
 
 # ─── Builder: CLI tools ────────────────────────────────────────────────────
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS cli-builder
 
 USER root
-
 ARG TARGETARCH
 
-# Go (for building Crush)
-RUN GO_VERSION=1.24.4 \
- && curl -Lo go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" \
- && tar -C /usr/local -xzf go.tar.gz \
- && rm go.tar.gz
-ENV PATH="/usr/local/go/bin:${PATH}"
+# Crush (pre-built binary)
+RUN CRUSH_ARCH="${TARGETARCH}" \
+ && if [ "$CRUSH_ARCH" = "amd64" ]; then CRUSH_ARCH="x86_64"; fi \
+ && curl -Lo crush.tar.gz "https://github.com/charmbracelet/crush/releases/latest/download/crush_Linux_${CRUSH_ARCH}.tar.gz" \
+ && tar xf crush.tar.gz crush \
+ && install crush /usr/local/bin/ \
+ && rm -f crush crush.tar.gz
 
-# Crush (AI coding assistant — github.com/charmbracelet/crush)
-RUN go install github.com/charmbracelet/crush@latest \
- && cp /root/go/bin/crush /usr/local/bin/crush
-
-# lazygit
+# lazygit (pre-built binary)
 ARG LAZYGIT_VERSION=0.44.1
 RUN LAZYGIT_ARCH="${TARGETARCH}" \
  && if [ "$LAZYGIT_ARCH" = "amd64" ]; then LAZYGIT_ARCH="x86_64"; fi \
- && curl -Lo lazygit.tar.gz \
-      "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz" \
+ && curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz" \
  && tar xf lazygit.tar.gz lazygit \
  && install lazygit /usr/local/bin/ \
  && rm -f lazygit lazygit.tar.gz
 
-# act (GitHub Actions local runner)
+# act (pre-built binary)
 ARG ACT_VERSION=0.2.89
 RUN ACT_ARCH="${TARGETARCH}" \
  && if [ "$ACT_ARCH" = "amd64" ]; then ACT_ARCH="x86_64"; fi \
- && curl -Lo act.tar.gz \
-      "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_${ACT_ARCH}.tar.gz" \
+ && curl -Lo act.tar.gz "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_${ACT_ARCH}.tar.gz" \
  && tar xf act.tar.gz act \
  && install act /usr/local/bin/ \
  && rm -f act act.tar.gz
@@ -85,12 +69,11 @@ USER root
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
  && apt-get -y install --no-install-recommends \
-   texlive-latex-base texlive-latex-extra texlive-fonts-recommended \
-   texlive-fonts-extra texlive-science texlive-bibtex-extra \
-   latexmk \
-   pandoc \
+   texlive-latex-base texlive-latex-extra \
+   texlive-fonts-recommended texlive-fonts-extra \
+   texlive-science texlive-bibtex-extra \
+   latexmk pandoc \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 
 # ─── Builder: PDF tools venv ───────────────────────────────────────────────
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS pdf-builder
@@ -104,27 +87,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
-RUN uv venv --python 3.12 /opt/venvs/pdf-tools
-
-RUN uv pip install --python /opt/venvs/pdf-tools/bin/python \
-   pymupdf \
-   pdfplumber \
-   pypdf \
-   pikepdf
-
-RUN find /opt/venvs/pdf-tools -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
-    rm -rf /opt/venvs/pdf-tools/lib/python*/site-packages/pip /opt/venvs/pdf-tools/lib/python*/site-packages/setuptools
-
-# ─── Builder: uv tools (jupyterlab, notebook) ──────────────────────────────
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS python-tools-builder
-
-USER root
-
-COPY --from=uv /uv /uvx /usr/local/bin/
-
-RUN uv tool install graphifyy \
- && uv tool install jupyterlab \
- && uv tool install notebook
+RUN uv venv --python 3.12 /opt/venvs/pdf-tools \
+ && uv pip install --python /opt/venvs/pdf-tools/bin/python \
+   pymupdf pdfplumber pypdf pikepdf
 
 # ============================================================================
 # FINAL STAGE — Assemble all artifacts
@@ -133,72 +98,58 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 USER root
 
-# ── System packages (core + PDF + LaTeX runtime + image processing) ─────────
+# ── System packages ────────────────────────────────────────────────────────
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
  && apt-get -y install --no-install-recommends \
-   # Core
    tmux curl git stow ca-certificates lsb-release \
    fzf ripgrep fd-find \
-   # PDF / document processing
-   poppler-utils \
-   # Image processing (for figures)
-   imagemagick \
-   # SQLite
+   poppler-utils imagemagick \
    sqlite3 libsqlite3-dev \
-   # LaTeX runtime deps (needed by copied texlive binaries)
    libfontconfig1 libfreetype6 libgd3 libxrender1 libx11-6 \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ── COPY: Neovim binaries ──────────────────────────────────────────────────
-COPY --from=nvim-builder /usr/local/bin/nvim /usr/local/bin/nvim
-COPY --from=nvim-builder /usr/local/lib/nvim /usr/local/lib/nvim
-COPY --from=nvim-builder /usr/local/share/nvim /usr/local/share/nvim
+# ── COPY: Neovim (pre-built) ──────────────────────────────────────────────
+COPY --from=nvim-builder /usr/local/nvim /usr/local/nvim
+RUN ln -sf /usr/local/nvim/bin/nvim /usr/local/bin/nvim
 
-# ── COPY: CLI tools (crush, lazygit, act, docker) ──────────────────────────
-COPY --from=cli-builder /usr/local/bin/crush        /usr/local/bin/crush
-COPY --from=cli-builder /usr/local/bin/lazygit   /usr/local/bin/lazygit
-COPY --from=cli-builder /usr/local/bin/act       /usr/local/bin/act
-COPY --from=cli-builder /usr/bin/docker          /usr/bin/docker
+# ── COPY: CLI tools ───────────────────────────────────────────────────────
+COPY --from=cli-builder /usr/local/bin/crush    /usr/local/bin/crush
+COPY --from=cli-builder /usr/local/bin/lazygit  /usr/local/bin/lazygit
+COPY --from=cli-builder /usr/local/bin/act      /usr/local/bin/act
+COPY --from=cli-builder /usr/bin/docker         /usr/bin/docker
 COPY --from=cli-builder /usr/libexec/docker/cli-plugins/ /usr/libexec/docker/cli-plugins/
 
-# ── COPY: LaTeX + Pandoc ───────────────────────────────────────────────────
-COPY --from=latex-builder /usr/share/texlive/    /usr/share/texlive/
-COPY --from=latex-builder /usr/share/texmf/      /usr/share/texmf/
-COPY --from=latex-builder /usr/bin/latexmk       /usr/bin/latexmk
-COPY --from=latex-builder /usr/bin/pandoc        /usr/bin/pandoc
+# ── COPY: LaTeX + Pandoc ──────────────────────────────────────────────────
+COPY --from=latex-builder /usr/share/texlive/ /usr/share/texlive/
+COPY --from=latex-builder /usr/share/texmf/   /usr/share/texmf/
+COPY --from=latex-builder /usr/bin/latexmk    /usr/bin/latexmk
+COPY --from=latex-builder /usr/bin/pandoc     /usr/bin/pandoc
 
-# ── COPY: Node.js + Zotero CLI ─────────────────────────────────────────────
-# NodeSource paths vary; install directly in final stage for reliability.
+# ── COPY: PDF tools venv ──────────────────────────────────────────────────
+COPY --from=pdf-builder /opt/venvs/pdf-tools/ /opt/venvs/pdf-tools/
+
+# ── Node.js + Zotero CLI ──────────────────────────────────────────────────
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
  && npm install -g zotero-cli \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# ── COPY: Python venvs ─────────────────────────────────────────────────────
-COPY --from=pdf-builder        /opt/venvs/pdf-tools/  /opt/venvs/pdf-tools/
-
-# ── COPY: uv tools (jupyterlab, notebook, graphify) ────────────────────────
-COPY --from=python-tools-builder /root/.local/   /home/vscode/.local/
-
-# ── COPY: uv binary ────────────────────────────────────────────────────────
+# ── uv + graphify ─────────────────────────────────────────────────────────
 COPY --from=uv /uv /uvx /usr/local/bin/
-
-# ── graphify install opencode (Crush skill) ─────────────────────────────────
 RUN uv tool install graphifyy \
  && /root/.local/bin/graphify install opencode
 
-# ── Venv helper scripts ────────────────────────────────────────────────────
+# ── Venv helper ───────────────────────────────────────────────────────────
 RUN echo '#!/bin/bash\nsource /opt/venvs/pdf-tools/bin/activate' \
       > /usr/local/bin/activate-pdf-tools \
- && chmod +x /usr/local/bin/activate-*
+ && chmod +x /usr/local/bin/activate-pdf-tools
 
-# ── User setup ─────────────────────────────────────────────────────────────
+# ── User setup ────────────────────────────────────────────────────────────
 RUN groupadd -f docker && usermod -aG docker vscode \
  && mkdir -p /home/vscode && chown vscode:vscode /home/vscode \
  && chmod 755 /root && git init /root
 
 USER vscode
 RUN git config --global user.name "vscode" && git config --global user.email "vscode@devcontainer.local"
-RUN nvim --headless +"set spelllang=en_us,pt_br" +qa 2>/dev/null || true
 
 ENV PATH="/home/vscode/.local/bin:${PATH}"
