@@ -24,10 +24,10 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04 AS cli-builder
 USER root
 ARG TARGETARCH
 
-# Crush (pre-built binary)
-ARG CRUSH_VERSION=0.81.0
+# Crush (pre-built binary — fetch latest version dynamically)
 RUN CRUSH_ARCH="${TARGETARCH}" \
  && if [ "$CRUSH_ARCH" = "amd64" ]; then CRUSH_ARCH="x86_64"; fi \
+ && CRUSH_VERSION=$(curl -fsSL https://api.github.com/repos/charmbracelet/crush/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//') \
  && curl -Lo crush.tar.gz "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" \
  && tar xf crush.tar.gz crush \
  && install crush /usr/local/bin/ \
