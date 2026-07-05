@@ -31,19 +31,19 @@ RUN CRUSH_VERSION=$(curl -fsSL https://api.github.com/repos/charmbracelet/crush/
  && cp /tmp/crush/usr/bin/crush /usr/local/bin/crush \
  && rm -rf crush.deb /tmp/crush
 
-# lazygit (pre-built binary)
-ARG LAZYGIT_VERSION=0.44.1
+# lazygit (pre-built binary — fetch latest version dynamically)
 RUN LAZYGIT_ARCH="${TARGETARCH}" \
  && if [ "$LAZYGIT_ARCH" = "amd64" ]; then LAZYGIT_ARCH="x86_64"; fi \
- && curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz" \
+ && LAZYGIT_VERSION=$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//') \
+ && curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_linux_${LAZYGIT_ARCH}.tar.gz" \
  && tar xf lazygit.tar.gz lazygit \
  && install lazygit /usr/local/bin/ \
  && rm -f lazygit lazygit.tar.gz
 
-# act (pre-built binary)
-ARG ACT_VERSION=0.2.89
+# act (pre-built binary — fetch latest version dynamically)
 RUN ACT_ARCH="${TARGETARCH}" \
  && if [ "$ACT_ARCH" = "amd64" ]; then ACT_ARCH="x86_64"; fi \
+ && ACT_VERSION=$(curl -fsSL https://api.github.com/repos/nektos/act/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//') \
  && curl -Lo act.tar.gz "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_${ACT_ARCH}.tar.gz" \
  && tar xf act.tar.gz act \
  && install act /usr/local/bin/ \
