@@ -1,0 +1,12 @@
+{
+  "name": "Knowledge Pod Test",
+  "build": {
+    "dockerfile": "../.devcontainer/Dockerfile",
+    "context": "../.devcontainer"
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "postCreateCommand": "bash verify.sh",
+  "remoteUser": "vscode"
+}
