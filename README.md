@@ -46,8 +46,6 @@ devpod up github.com/yourorg/knowledge-pod
 | **PyMuPDF** | Fast PDF parsing |
 | **pdfplumber** | Table-aware PDF extraction |
 | **pypdf** | PDF manipulation |
-| **marker-pdf** | PDF-to-Markdown with layout understanding |
-| **unstructured** | Document ingestion for RAG pipelines |
 | **pikepdf** | Low-level PDF editing |
 
 Installed in an isolated venv at `/opt/venvs/pdf-tools` (Python 3.12).
@@ -111,9 +109,6 @@ doc = fitz.open('paper.pdf')
 for page in doc:
     print(page.get_text())
 "
-
-# PDF to Markdown (layout-aware)
-marker_single paper.pdf --output_dir ./converted/
 ```
 
 ### Graphify

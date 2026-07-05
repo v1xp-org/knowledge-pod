@@ -110,8 +110,6 @@ RUN uv pip install --python /opt/venvs/pdf-tools/bin/python \
    pymupdf \
    pdfplumber \
    pypdf \
-   marker-pdf \
-   unstructured \
    pikepdf
 
 RUN find /opt/venvs/pdf-tools -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; \
