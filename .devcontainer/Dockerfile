@@ -68,9 +68,7 @@ USER root
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
  && apt-get -y install --no-install-recommends \
-   texlive-latex-base texlive-latex-extra \
-   texlive-fonts-recommended texlive-fonts-extra \
-   texlive-science texlive-bibtex-extra \
+   texlive-latex-base texlive-fonts-recommended \
    latexmk pandoc \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
