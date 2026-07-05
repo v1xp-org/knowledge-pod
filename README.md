@@ -1,14 +1,26 @@
 # Knowledge Pod
 
-A DevPod-based scientific research workspace. Forked from [devpods-builds](../devpods-builds/) and extended with AI, PDF, and reference-management tooling.
+A DevPod-based scientific research workspace. Multi-stage Docker build with Neovim, JupyterLab, LaTeX, PDF tools, Zotero integration, and AI tooling — designed to be lean by default with optional heavy extras.
 
-## What's Inside
+## Quick Start
 
-### Core (inherited from devpods-builds)
+```bash
+# Docker
+docker build -t knowledge-pod .devcontainer/
+docker run -it -p 8888:8888 -v /var/run/docker.sock:/var/run/docker.sock knowledge-pod
+
+# DevPod
+devpod provider use docker
+devpod up github.com/yourorg/knowledge-pod
+```
+
+## What's Included
+
+### Core
 
 | Tool | Purpose |
 |------|---------|
-| **Neovim** (stable, from source) | Editor |
+| **Neovim** (stable, built from source) | Editor |
 | **uv** (Astral) | Fast Python package/project manager |
 | **opencode** (Crush / Charm) | AI coding assistant |
 | **lazygit** | Git TUI |
@@ -16,29 +28,19 @@ A DevPod-based scientific research workspace. Forked from [devpods-builds](../de
 | **Docker CLI** | Container management |
 | **graphify** | Knowledge graph generation for codebases |
 
-### Scientific Research
+### Scientific
 
 | Tool | Purpose |
 |------|---------|
-| **JupyterLab** | Interactive notebooks (Python kernel) |
-| **LaTeX** | Full TeX Live (texlive-latex-base + extras + science + fonts) |
+| **JupyterLab** | Interactive notebooks (port 8888) |
+| **LaTeX** | TeX Live (base + extras + science + fonts) |
 | **latexmk** | LaTeX build automation |
 | **Pandoc** | Universal document converter |
-| **Poppler** | PDF text extraction (`pdftotext`, `pdfinfo`, etc.) |
+| **Poppler** | PDF text extraction (`pdftotext`, `pdfinfo`) |
 | **ImageMagick** | Figure processing |
 | **SQLite3** | Local structured data |
 
-### AI / LLM Tooling
-
-| Tool | Purpose |
-|------|---------|
-| **graphify** | Knowledge graph generation for codebases |
-| **pyzotero** | Zotero API wrapper — bridge into LLM pipelines |
-
-> **Optional additions:** LlamaIndex, Khoj, Ollama, ChromaDB, Qdrant
-> can be installed in the container after build. See [Customization](#customization).
-
-### PDF & Document Processing
+### PDF Processing
 
 | Tool | Purpose |
 |------|---------|
@@ -49,66 +51,27 @@ A DevPod-based scientific research workspace. Forked from [devpods-builds](../de
 | **unstructured** | Document ingestion for RAG pipelines |
 | **pikepdf** | Low-level PDF editing |
 
+Installed in an isolated venv at `/opt/venvs/pdf-tools` (Python 3.12).
+
 ### Reference Management
 
 | Tool | Purpose |
 |------|---------|
-| **zotero-cli** (Node) | CLI access to Zotero libraries (`zotero-cli` command) |
-| **pyzotero** | Python Zotero API wrapper — fetch papers/metadata for LlamaIndex |
-| **Better BibTeX** | BibTeX export (install the Zotero plugin on your host) |
+| **zotero-cli** (Node) | CLI access to Zotero libraries |
+| **pyzotero** | Python Zotero API wrapper for LLM pipelines |
+| **Better BibTeX** | BibTeX export (install plugin on host) |
 
-## Quick Start
+## Usage
 
-```bash
-# Build the image
-cd knowledge-pod
-docker build -t knowledge-pod .devcontainer/
-
-# Or use DevPod
-devpod provider use docker
-devpod up github.com/yourorg/knowledge-pod
-```
-
-## Port Forwarding
-
-| Port | Service |
-|------|---------|
-| 8888 | JupyterLab |
-
-## Directory Layout
-
-```
-knowledge-pod/
-├── .devcontainer/
-│   ├── Dockerfile           # Multi-stage build
-│   ├── devcontainer.json    # DevPod / VS Code config
-│   └── .dockerignore
-├── .github/workflows/
-│   └── build-image.yml      # Multi-arch GHCR build
-└── README.md
-```
-
-## Python Environments
-
-| Venv | Contents |
-|------|----------|
-| `/opt/venvs/pdf-tools` | PDF processing libraries |
-
-System Python also has `jupyterlab`, `notebook`, and `graphify` installed as uv tools (available globally).
-
-## Using JupyterLab
+### JupyterLab
 
 ```bash
-# Start JupyterLab
 jupyterlab --no-browser --port 8888
-
-# Or open in VS Code via the Ports panel
 ```
 
-## Using Zotero
+### Zotero
 
 ```bash
-# List collections (requires ZOTERO_API_KEY and ZOTERO_USER_ID env vars)
 export ZOTERO_API_KEY="your-key"
 export ZOTERO_USER_ID="your-user-id"
 
@@ -117,17 +80,15 @@ zotero-cli items --collection <collectionKey>
 zotero-cli export --format bibtex > references.bib
 ```
 
-## Using PDF Tools
+### PDF Tools
 
 ```bash
-# Extract text from a PDF
+# CLI extraction
 pdftotext paper.pdf paper.txt
-
-# Get PDF metadata
 pdfinfo paper.pdf
 
-# Python-based extraction
-source /opt/venvs/pdf-tools/bin/activate
+# Python extraction
+source activate-pdf-tools
 python -c "
 import fitz
 doc = fitz.open('paper.pdf')
@@ -135,49 +96,117 @@ for page in doc:
     print(page.get_text())
 "
 
-# Convert PDF to Markdown (layout-aware)
+# PDF to Markdown (layout-aware)
 marker_single paper.pdf --output_dir ./converted/
 ```
 
-## Customization
+### Graphify
 
-### Add more LaTeX packages
+```bash
+graphify .
+graphify query "How is authentication handled?"
+graphify path "UserService" "AuthMiddleware"
+```
+
+## Optional Add-ons
+
+These are not included in the base image to keep it lean. Install inside the container as needed.
+
+### LlamaIndex (RAG)
+
+```bash
+uv venv --python 3.12 /opt/venvs/llamaindex
+uv pip install --python /opt/venvs/llamaindex/bin/python \
+  llama-index-core llama-index-llms-ollama llama-index-embeddings-ollama \
+  llama-index-readers-file llama-index-vector-stores-chroma pyzotero
+
+# Usage
+source /opt/venvs/llamaindex/bin/activate
+python -c "
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+docs = SimpleDirectoryReader('./papers').load_data()
+index = VectorStoreIndex.from_documents(docs)
+print(index.as_query_engine().query('Main findings?'))
+"
+```
+
+### Khoj (Research Assistant)
+
+```bash
+uv venv --python 3.12 /opt/venvs/khoj
+uv pip install --python /opt/venvs/khoj/bin/python khoj
+/opt/venvs/khoj/bin/khoj --host 0.0.0.0 --port 8600
+```
+
+### Ollama (Local LLMs)
+
+```bash
+curl -fsSL https://ollama.ai/install.sh | sh
+ollama pull llama3
+```
+
+### LaTeX Packages
 
 ```dockerfile
 # In the Dockerfile, after the apt-get install block:
 RUN tlmgr install <package-name>
 ```
 
-### Install LlamaIndex for RAG
+## Configuration
 
-```bash
-# Inside the container
-uv venv --python 3.12 /opt/venvs/llamaindex
-uv pip install --python /opt/venvs/llamaindex/bin/python \
-  llama-index-core llama-index-llms-ollama llama-index-embeddings-ollama \
-  llama-index-readers-file llama-index-vector-stores-chroma pyzotero
-```
-
-### Install Khoj (research assistant)
-
-```bash
-uv venv --python 3.12 /opt/venvs/khoj
-uv pip install --python /opt/venvs/khoj/bin/python khoj
-# Start: /opt/venvs/khoj/bin/khoj --host 0.0.0.0 --port 8600
-```
-
-### Add Ollama for local LLMs
-
-```bash
-# Install Ollama in the container
-curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull llama3
-```
-
-### Mount your Zotero library
-
-Add to `devcontainer.json` mounts:
+### devcontainer.json
 
 ```json
-"source=${localEnv:HOME}/Zotero,target=/home/vscode/Zotero,type=bind,consistency=cached,readonly"
+{
+  "image": "ghcr.io/yourorg/knowledge-pod:latest",
+  "forwardPorts": [8888],
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=${localEnv:HOME}/Zotero,target=/home/vscode/Zotero,type=bind,consistency=cached,readonly"
+  ],
+  "remoteUser": "vscode"
+}
+```
+
+## Build
+
+```bash
+# Local build
+docker build -t knowledge-pod .devcontainer/
+
+# Multi-arch (via GitHub Actions)
+# Push to .devcontainer/ on main — builds amd64 + arm64 to GHCR
+```
+
+## Directory Layout
+
+```
+knowledge-pod/
+├── .devcontainer/
+│   ├── Dockerfile           # Multi-stage build (8 builders + final)
+│   ├── devcontainer.json    # DevPod / VS Code config
+│   └── .dockerignore
+├── .github/workflows/
+│   └── build-image.yml      # Multi-arch GHCR build
+└── README.md
+```
+
+## Image Architecture
+
+The Dockerfile uses multi-stage builds to keep the final image lean and enable independent caching:
+
+```
+Builder stages (discarded):
+  uv                  Astral package manager
+  nvim-builder        Neovim from source
+  cli-builder         opencode, lazygit, act, docker-cli
+  latex-builder       TeX Live + latexmk + pandoc
+  pdf-builder         PDF processing Python libraries
+  python-tools-builder  uv tools (jupyterlab, notebook, graphify)
+
+Final stage:
+  Ubuntu 24.04 + system deps + LaTeX runtime libs
+  + COPY artifacts from each builder
+  + Node.js + zotero-cli (installed directly)
+  + graphify install opencode
 ```
