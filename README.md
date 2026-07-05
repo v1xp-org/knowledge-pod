@@ -233,5 +233,5 @@ Final stage:
   Ubuntu 24.04 + system deps + LaTeX runtime libs
   + COPY artifacts from each builder
   + Node.js + zotero-cli (installed directly)
-  + graphify install crush
+  + graphify install opencode
 ```
