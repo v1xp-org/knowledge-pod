@@ -1,13 +1,13 @@
 # Knowledge Pod
 
-A DevPod-based scientific research workspace. Multi-stage Docker build with Neovim, JupyterLab, LaTeX, PDF tools, Zotero integration, and AI tooling — designed to be lean by default with optional heavy extras.
+A DevPod-based scientific research workspace. Multi-stage Docker build with Neovim, Crush, LaTeX, PDF tools, and Zotero integration — designed to be lean by default with optional heavy extras.
 
 ## Quick Start
 
 ```bash
 # Docker
 docker build -t knowledge-pod .devcontainer/
-docker run -it -p 8888:8888 -v /var/run/docker.sock:/var/run/docker.sock knowledge-pod
+docker run -it -v /var/run/docker.sock:/var/run/docker.sock knowledge-pod
 
 # DevPod
 devpod provider use docker
@@ -22,7 +22,7 @@ devpod up github.com/yourorg/knowledge-pod
 |------|---------|
 | **Neovim** (stable, built from source) | Editor |
 | **uv** (Astral) | Fast Python package/project manager |
-| **opencode** (Crush / Charm) | AI coding assistant |
+| **Crush** | AI coding assistant |
 | **lazygit** | Git TUI |
 | **act** | Local GitHub Actions runner |
 | **Docker CLI** | Container management |
@@ -32,7 +32,6 @@ devpod up github.com/yourorg/knowledge-pod
 
 | Tool | Purpose |
 |------|---------|
-| **JupyterLab** | Interactive notebooks (port 8888) |
 | **LaTeX** | TeX Live (base + extras + science + fonts) |
 | **latexmk** | LaTeX build automation |
 | **Pandoc** | Universal document converter |
@@ -63,20 +62,37 @@ Installed in an isolated venv at `/opt/venvs/pdf-tools` (Python 3.12).
 
 ## Usage
 
-### JupyterLab
+### Crush
 
 ```bash
-jupyterlab --no-browser --port 8888
+# Start Crush in your project
+crush
+
+# Or use with a specific model
+crush --model anthropic/claude-sonnet-4-20250514
 ```
 
 ### Zotero
 
 ```bash
+# Get your API key (free):
+#   1. Go to https://www.zotero.org/settings/keys
+#   2. Click "Create new private key"
+#   3. Give it a name (e.g., "Knowledge Pod")
+#   4. Set access level to "Allow library access"
+#   5. Copy the key
+
+# Your User ID is the number in https://www.zotero.org/users/YOUR_USER_ID
 export ZOTERO_API_KEY="your-key"
 export ZOTERO_USER_ID="your-user-id"
 
+# List collections
 zotero-cli collections
+
+# List items in a collection
 zotero-cli items --collection <collectionKey>
+
+# Export as BibTeX
 zotero-cli export --format bibtex > references.bib
 ```
 
@@ -103,14 +119,26 @@ marker_single paper.pdf --output_dir ./converted/
 ### Graphify
 
 ```bash
+# Generate a knowledge graph of your codebase
 graphify .
+
+# Query the graph
 graphify query "How is authentication handled?"
+
+# Find relationships between concepts
 graphify path "UserService" "AuthMiddleware"
 ```
 
 ## Optional Add-ons
 
 These are not included in the base image to keep it lean. Install inside the container as needed.
+
+### JupyterLab
+
+```bash
+uv tool install jupyterlab
+jupyterlab --no-browser --port 8888
+```
 
 ### LlamaIndex (RAG)
 
@@ -159,7 +187,6 @@ RUN tlmgr install <package-name>
 ```json
 {
   "image": "ghcr.io/yourorg/knowledge-pod:latest",
-  "forwardPorts": [8888],
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
     "source=${localEnv:HOME}/Zotero,target=/home/vscode/Zotero,type=bind,consistency=cached,readonly"
@@ -193,20 +220,18 @@ knowledge-pod/
 
 ## Image Architecture
 
-The Dockerfile uses multi-stage builds to keep the final image lean and enable independent caching:
-
 ```
 Builder stages (discarded):
-  uv                  Astral package manager
-  nvim-builder        Neovim from source
-  cli-builder         opencode, lazygit, act, docker-cli
-  latex-builder       TeX Live + latexmk + pandoc
-  pdf-builder         PDF processing Python libraries
-  python-tools-builder  uv tools (jupyterlab, notebook, graphify)
+  uv                    Astral package manager
+  nvim-builder          Neovim from source
+  cli-builder           crush, lazygit, act, docker-cli
+  latex-builder         TeX Live + latexmk + pandoc
+  pdf-builder           PDF processing Python libraries
+  python-tools-builder  uv tools (graphify)
 
 Final stage:
   Ubuntu 24.04 + system deps + LaTeX runtime libs
   + COPY artifacts from each builder
   + Node.js + zotero-cli (installed directly)
-  + graphify install opencode
+  + graphify install crush
 ```

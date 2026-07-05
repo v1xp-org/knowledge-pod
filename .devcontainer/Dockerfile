@@ -35,9 +35,9 @@ USER root
 
 ARG TARGETARCH
 
-# opencode (Crush / Charm)
+# Crush (AI coding assistant)
 RUN curl -fsSL https://opencode.ai/install | bash \
- && cp /root/.opencode/bin/opencode /usr/local/bin/opencode
+ && cp /root/.opencode/bin/opencode /usr/local/bin/crush
 
 # lazygit
 ARG LAZYGIT_VERSION=0.44.1
@@ -149,8 +149,8 @@ COPY --from=nvim-builder /usr/local/bin/nvim /usr/local/bin/nvim
 COPY --from=nvim-builder /usr/local/lib/nvim /usr/local/lib/nvim
 COPY --from=nvim-builder /usr/local/share/nvim /usr/local/share/nvim
 
-# ── COPY: CLI tools (opencode, lazygit, act, docker) ───────────────────────
-COPY --from=cli-builder /usr/local/bin/opencode /usr/local/bin/opencode
+# ── COPY: CLI tools (crush, lazygit, act, docker) ──────────────────────────
+COPY --from=cli-builder /usr/local/bin/crush        /usr/local/bin/crush
 COPY --from=cli-builder /usr/local/bin/lazygit   /usr/local/bin/lazygit
 COPY --from=cli-builder /usr/local/bin/act       /usr/local/bin/act
 COPY --from=cli-builder /usr/bin/docker          /usr/bin/docker
@@ -178,8 +178,8 @@ COPY --from=python-tools-builder /root/.local/   /home/vscode/.local/
 # ── COPY: uv binary ────────────────────────────────────────────────────────
 COPY --from=uv /uv /uvx /usr/local/bin/
 
-# ── graphify install opencode (skill setup) ────────────────────────────────
-RUN graphify install opencode
+# ── graphify install crush (skill setup) ────────────────────────────────────
+RUN graphify install crush
 
 # ── Venv helper scripts ────────────────────────────────────────────────────
 RUN echo '#!/bin/bash\nsource /opt/venvs/pdf-tools/bin/activate' \
