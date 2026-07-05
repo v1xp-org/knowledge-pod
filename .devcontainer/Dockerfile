@@ -25,9 +25,10 @@ USER root
 ARG TARGETARCH
 
 # Crush (pre-built binary)
+ARG CRUSH_VERSION=0.81.0
 RUN CRUSH_ARCH="${TARGETARCH}" \
  && if [ "$CRUSH_ARCH" = "amd64" ]; then CRUSH_ARCH="x86_64"; fi \
- && curl -Lo crush.tar.gz "https://github.com/charmbracelet/crush/releases/latest/download/crush_Linux_${CRUSH_ARCH}.tar.gz" \
+ && curl -Lo crush.tar.gz "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" \
  && tar xf crush.tar.gz crush \
  && install crush /usr/local/bin/ \
  && rm -f crush crush.tar.gz
