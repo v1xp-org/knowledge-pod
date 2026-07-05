@@ -20,7 +20,7 @@ devpod up github.com/yourorg/knowledge-pod
 
 | Tool | Purpose |
 |------|---------|
-| **Neovim** (stable, built from source) | Editor |
+| **Neovim** (pre-built binary) | Editor |
 | **uv** (Astral) | Fast Python package/project manager |
 | **Crush** | AI coding assistant |
 | **lazygit** | Git TUI |
@@ -32,7 +32,7 @@ devpod up github.com/yourorg/knowledge-pod
 
 | Tool | Purpose |
 |------|---------|
-| **LaTeX** | TeX Live (base + extras + science + fonts) |
+| **LaTeX** | TeX Live (base + recommended fonts) |
 | **latexmk** | LaTeX build automation |
 | **Pandoc** | Universal document converter |
 | **Poppler** | PDF text extraction (`pdftotext`, `pdfinfo`) |
@@ -205,7 +205,7 @@ docker build -t knowledge-pod .devcontainer/
 ```
 knowledge-pod/
 ├── .devcontainer/
-│   ├── Dockerfile           # Multi-stage build (8 builders + final)
+│   ├── Dockerfile           # Multi-stage build (5 builders + final)
 │   ├── devcontainer.json    # DevPod / VS Code config
 │   └── .dockerignore
 ├── .github/workflows/
@@ -218,11 +218,13 @@ knowledge-pod/
 ```
 Builder stages (discarded):
   uv                    Astral package manager
-  nvim-builder          Neovim from source
+  nvim-builder          Neovim pre-built binary
   cli-builder           crush, lazygit, act, docker-cli
   latex-builder         TeX Live + latexmk + pandoc
   pdf-builder           PDF processing Python libraries
-  python-tools-builder  uv tools (graphify)
+
+All CLI tools (neovim, crush, lazygit, act) fetch their latest
+release dynamically from GitHub — no versions are pinned.
 
 Final stage:
   Ubuntu 24.04 + system deps + LaTeX runtime libs
