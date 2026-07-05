@@ -35,9 +35,15 @@ USER root
 
 ARG TARGETARCH
 
-# Crush (AI coding assistant)
-RUN curl -fsSL https://opencode.ai/install | bash \
- && cp /root/.opencode/bin/opencode /usr/local/bin/crush
+# Crush (AI coding assistant — github.com/charmbracelet/crush)
+ARG CRUSH_VERSION=0.81.0
+RUN CRUSH_ARCH="${TARGETARCH}" \
+ && if [ "$CRUSH_ARCH" = "amd64" ]; then CRUSH_ARCH="x86_64"; fi \
+ && curl -Lo crush.tar.gz \
+      "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" \
+ && tar xf crush.tar.gz crush \
+ && install crush /usr/local/bin/ \
+ && rm -f crush crush.tar.gz
 
 # lazygit
 ARG LAZYGIT_VERSION=0.44.1
