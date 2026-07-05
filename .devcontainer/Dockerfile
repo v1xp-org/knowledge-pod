@@ -35,15 +35,16 @@ USER root
 
 ARG TARGETARCH
 
+# Go (for building Crush)
+RUN GO_VERSION=1.24.4 \
+ && curl -Lo go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" \
+ && tar -C /usr/local -xzf go.tar.gz \
+ && rm go.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # Crush (AI coding assistant — github.com/charmbracelet/crush)
-ARG CRUSH_VERSION=0.81.0
-RUN CRUSH_ARCH="${TARGETARCH}" \
- && if [ "$CRUSH_ARCH" = "amd64" ]; then CRUSH_ARCH="x86_64"; fi \
- && curl -Lo crush.tar.gz \
-      "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" \
- && tar xf crush.tar.gz crush \
- && install crush /usr/local/bin/ \
- && rm -f crush crush.tar.gz
+RUN go install github.com/charmbracelet/crush@latest \
+ && cp /root/go/bin/crush /usr/local/bin/crush
 
 # lazygit
 ARG LAZYGIT_VERSION=0.44.1
