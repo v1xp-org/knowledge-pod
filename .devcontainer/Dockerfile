@@ -147,6 +147,6 @@ RUN groupadd -f docker && usermod -aG docker vscode \
  && chmod 755 /root && git init /root
 
 USER vscode
-RUN git config --global user.name "vscode" && git config --global user.email "vscode@devcontainer.local"
 
 ENV PATH="/home/vscode/.local/bin:${PATH}"
+ENV DOCKER_IMAGE_NAME="Knowledge Pod"
