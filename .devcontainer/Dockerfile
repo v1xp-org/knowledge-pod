@@ -184,7 +184,7 @@ COPY --from=python-tools-builder /root/.local/   /home/vscode/.local/
 COPY --from=uv /uv /uvx /usr/local/bin/
 
 # ── graphify install opencode (Crush skill) ─────────────────────────────────
-RUN graphify install opencode
+RUN /home/vscode/.local/bin/graphify install opencode
 
 # ── Venv helper scripts ────────────────────────────────────────────────────
 RUN echo '#!/bin/bash\nsource /opt/venvs/pdf-tools/bin/activate' \
