@@ -125,10 +125,10 @@ COPY --from=latex-builder /usr/bin/pandoc     /usr/bin/pandoc
 # ── COPY: PDF tools venv ──────────────────────────────────────────────────
 COPY --from=pdf-builder /opt/venvs/pdf-tools/ /opt/venvs/pdf-tools/
 
-# ── Node.js + Zotero CLI ──────────────────────────────────────────────────
+# ── Node.js + Zotero CLI + KaTeX ─────────────────────────────────────────
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
  && apt-get install -y --no-install-recommends nodejs \
- && npm install -g zotero-cli \
+ && npm install -g zotero-cli katex \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ── uv + graphify ─────────────────────────────────────────────────────────
