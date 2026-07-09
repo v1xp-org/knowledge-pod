@@ -150,3 +150,5 @@ USER vscode
 
 ENV PATH="/home/vscode/.local/bin:${PATH}"
 ENV DOCKER_IMAGE_NAME="Knowledge Pod"
+
+# TODO: Install latex somewhere (latexmk)
